@@ -1,0 +1,26 @@
+{
+  "DeepSeek": {
+    "apiKey": "",
+    "model": "deepseek/deepseek-chat",
+    "baseUrl": "https://openrouter.ai/api/v1"
+  },
+  "Models": [
+    {
+      "name": "DeepSeek",
+      "apiKey": "",
+      "model": "deepseek/deepseek-chat",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "enabled": true
+    },
+    {
+      "name": "Llama 3.3",
+      "apiKey": "",
+      "model": "meta-llama/llama-3.3-70b-instruct:free",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "enabled": true
+    }
+  ],
+  "Ui": {
+    "showSourcePanel": false
+  }
+}
