@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace LightCopyTranslator.Services;
@@ -57,10 +58,26 @@ internal sealed class TrayService : IDisposable
         try
         {
             var baseDir = AppContext.BaseDirectory;
-            var iconPath = Path.Combine(baseDir, "Resources", "tray.ico");
-            if (File.Exists(iconPath))
+            var pngPath = Path.Combine(baseDir, "resource", "icon.png");
+            if (File.Exists(pngPath))
             {
-                return new Icon(iconPath);
+                using var bitmap = new Bitmap(pngPath);
+                var hIcon = bitmap.GetHicon();
+                try
+                {
+                    using var icon = Icon.FromHandle(hIcon);
+                    return (Icon)icon.Clone();
+                }
+                finally
+                {
+                    DestroyIcon(hIcon);
+                }
+            }
+
+            var icoPath = Path.Combine(baseDir, "resource", "tray.ico");
+            if (File.Exists(icoPath))
+            {
+                return new Icon(icoPath);
             }
         }
         catch
@@ -70,4 +87,7 @@ internal sealed class TrayService : IDisposable
 
         return null;
     }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
 }

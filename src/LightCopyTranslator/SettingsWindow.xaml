@@ -7,8 +7,8 @@
         MinWidth="640"
         MinHeight="360"
         WindowStartupLocation="CenterScreen"
-        ShowInTaskbar="False"
-        WindowStyle="ToolWindow">
+        ShowInTaskbar="True"
+        WindowStyle="SingleBorderWindow">
     <Grid Margin="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
