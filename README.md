@@ -15,10 +15,9 @@ Lightweight Windows copy-translate tool (WPF / .NET 10).
 
 ## Tutorial
 1. Download the portable ZIP in the releases page and extract to any loc.
-2. Extract it to any folder.
-3. Run `LightCopyTranslator.exe` inside the extracted folder.
-4. Right click the tray icon and open the setting, add your llm api key; recommand using [openrouter](https://openrouter.ai/), see config section.
-5. Select the text and ctrl CC to enjoy the translation!
+2. Run `LightCopyTranslator.exe` inside the extracted folder.
+3. Right click the tray icon and open the setting, add your llm api key; recommand using [openrouter](https://openrouter.ai/), see config section.
+4. Select the text and ctrl CC to enjoy the translation!
 
 
 ## Build From Source
