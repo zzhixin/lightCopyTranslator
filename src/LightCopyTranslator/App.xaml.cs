@@ -12,6 +12,7 @@ namespace LightCopyTranslator;
 public partial class App : System.Windows.Application
 {
     private readonly TimeSpan _doubleCopyWindow = TimeSpan.FromMilliseconds(500);
+    private readonly TimeSpan _minDoubleCopyInterval = TimeSpan.FromMilliseconds(60);
     private ClipboardMonitor? _clipboard;
     private TrayService? _tray;
     private MainWindow? _window;
@@ -70,12 +71,21 @@ public partial class App : System.Windows.Application
         }
 
         var now = DateTime.UtcNow;
-        if (_lastText == trimmed && (now - _lastCopyAt) <= _doubleCopyWindow)
+        if (_lastText == trimmed)
         {
-            _lastText = null;
-            _lastCopyAt = DateTime.MinValue;
-            _window?.ShowForText(trimmed);
-            return;
+            var delta = now - _lastCopyAt;
+            if (delta < _minDoubleCopyInterval)
+            {
+                return;
+            }
+
+            if (delta <= _doubleCopyWindow)
+            {
+                _lastText = null;
+                _lastCopyAt = DateTime.MinValue;
+                _window?.ShowForText(trimmed);
+                return;
+            }
         }
 
         _lastText = trimmed;

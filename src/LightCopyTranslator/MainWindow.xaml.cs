@@ -1,8 +1,10 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using LightCopyTranslator.ViewModels;
 
@@ -20,6 +22,7 @@ public partial class MainWindow : Window
     private double _lastRightColumnWidth;
     private bool _pendingApplyShowSource;
     private bool _pendingShowSourcePanel;
+    private DateTime _suppressDeactivateUntil = DateTime.MinValue;
 
     public MainWindow()
     {
@@ -80,8 +83,11 @@ public partial class MainWindow : Window
         Top = top;
 
         Show();
+        WindowState = WindowState.Normal;
         Activate();
         Focus();
+        _suppressDeactivateUntil = DateTime.UtcNow.AddMilliseconds(400);
+        ForceForeground();
     }
 
     public void AllowClose()
@@ -118,6 +124,11 @@ public partial class MainWindow : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
+        if (DateTime.UtcNow < _suppressDeactivateUntil)
+        {
+            return;
+        }
+
         if (IsVisible)
         {
             Hide();
@@ -224,4 +235,55 @@ public partial class MainWindow : Window
             Width = desired;
         }
     }
+
+    private void ForceForeground()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var foreground = GetForegroundWindow();
+        var currentThreadId = GetCurrentThreadId();
+        var foregroundThreadId = GetWindowThreadProcessId(foreground, out _);
+        var attached = false;
+
+        if (foregroundThreadId != currentThreadId && foregroundThreadId != 0)
+        {
+            attached = AttachThreadInput(foregroundThreadId, currentThreadId, true);
+        }
+
+        ShowWindow(hwnd, SW_SHOW);
+        BringWindowToTop(hwnd);
+        SetForegroundWindow(hwnd);
+
+        if (attached)
+        {
+            AttachThreadInput(foregroundThreadId, currentThreadId, false);
+        }
+    }
+
+    private const int SW_SHOW = 5;
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
 }
