@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Forms;
 
 namespace LightCopyTranslator.Services;
@@ -57,6 +58,13 @@ internal sealed class TrayService : IDisposable
     {
         try
         {
+            var resourceStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Resources/tray.ico"));
+            if (resourceStream != null)
+            {
+                using var stream = resourceStream.Stream;
+                return new Icon(stream);
+            }
+
             var baseDir = AppContext.BaseDirectory;
             var pngPath = Path.Combine(baseDir, "resource", "icon.png");
             if (File.Exists(pngPath))

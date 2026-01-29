@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Interop;
 using LightCopyTranslator.Services;
 using LightCopyTranslator.ViewModels;
 
@@ -25,24 +27,39 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        RegisterExceptionHandlers();
 
-        var config = ConfigService.Load();
-        _config = config;
-        var translators = BuildTranslators(config);
+        try
+        {
+            var config = ConfigService.Load();
+            _config = config;
+            var translators = BuildTranslators(config);
 
-        var viewModel = new TranslationViewModel(translators, Dispatcher);
+            var viewModel = new TranslationViewModel(translators, Dispatcher);
 
-        _window = new MainWindow();
-        _window.Initialize(viewModel);
-        _window.ApplyShowSourcePanel(config.Ui.ShowSourcePanel);
+            _window = new MainWindow();
+            _window.Initialize(viewModel);
+            _window.ApplyShowSourcePanel(config.Ui.ShowSourcePanel);
+            MainWindow = _window;
 
-        _tray = new TrayService();
-        _tray.ShowRequested += ToggleWindow;
-        _tray.SettingsRequested += OpenSettings;
-        _tray.ExitRequested += OnExitRequested;
+            _tray = new TrayService();
+            _tray.ShowRequested += ToggleWindow;
+            _tray.SettingsRequested += OpenSettings;
+            _tray.ExitRequested += OnExitRequested;
 
-        _clipboard = new ClipboardMonitor();
-        _clipboard.ClipboardTextChanged += OnClipboardTextChanged;
+            _clipboard = new ClipboardMonitor();
+            _clipboard.ClipboardTextChanged += OnClipboardTextChanged;
+
+            EnsureWindowHandle();
+            LogInfo("Startup OK");
+        }
+        catch (Exception ex)
+        {
+            LogError("Startup failed", ex);
+            System.Windows.MessageBox.Show($"启动失败：{ex.Message}\n日志：{GetLogPath()}", "Light Copy Translator",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(-1);
+        }
     }
 
     private void ToggleWindow()
@@ -174,5 +191,70 @@ public partial class App : System.Windows.Application
         }
 
         return translators;
+    }
+
+    private static void RegisterExceptionHandlers()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                LogError("Unhandled exception", ex);
+            }
+        };
+
+        Current.DispatcherUnhandledException += (_, args) =>
+        {
+            LogError("Dispatcher unhandled exception", args.Exception);
+            System.Windows.MessageBox.Show($"发生未处理异常：{args.Exception.Message}\n日志：{GetLogPath()}", "Light Copy Translator",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+    }
+
+    private static void LogInfo(string message)
+    {
+        WriteLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
+    }
+
+    private static void LogError(string title, Exception ex)
+    {
+        WriteLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {title}\n{ex}");
+    }
+
+    private static void WriteLog(string text)
+    {
+        try
+        {
+            var path = GetLogPath();
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.AppendAllText(path, text + Environment.NewLine);
+        }
+        catch
+        {
+            // Ignore logging failures.
+        }
+    }
+
+    private static string GetLogPath()
+    {
+        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(baseDir, "LightCopyTranslator", "startup.log");
+    }
+
+    private void EnsureWindowHandle()
+    {
+        if (_window == null)
+        {
+            return;
+        }
+
+        var helper = new WindowInteropHelper(_window);
+        _ = helper.EnsureHandle();
     }
 }
